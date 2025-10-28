@@ -3,21 +3,25 @@ import jwt from 'jsonwebtoken';
 import * as userRepo from '../repositories/userRepository';
 import { getDbPool } from '../utils/db';
 
-const SALT_ROUNDS = 10;
+
 const JWT_SECRET = process.env.JWT_SECRET || 'change_me';
 
-export async function register(username: string, email: string, password: string) {
-  const pool = await getDbPool();
-  const existing = await userRepo.getUserByEmail(pool, email);
-  if (existing) throw new Error('User already exists');
-  const password_hash = await bcrypt.hash(password, SALT_ROUNDS);
-  const newUser = await userRepo.createUser(pool, username, email, password_hash);
-  return newUser;
+export async function register(user: userRepo.UserCreate) {
+  const existing = await userRepo.getUserByEmail(user.email);
+  if (existing) throw new Error('Email already in use');
+  if(user.password_hash){
+    console.log(user.password_hash)
+    const password_hash = await bcrypt.hash(user.password_hash, 10);
+    console.log("hashedpss:", password_hash)
+    user.password_hash = password_hash;
+  }
+  await userRepo.createUser(user);
+
 }
 
 export async function login(email: string, password: string) {
   const pool = await getDbPool();
-  const user = await userRepo.getUserByEmail(pool, email);
+  const user = await userRepo.getUserByEmail(email);
   if (!user) throw new Error('Invalid credentials');
   const ok = await bcrypt.compare(password, user.password_hash);
   if (!ok) throw new Error('Invalid credentials');

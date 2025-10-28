@@ -1,20 +1,25 @@
 import sql from 'mssql';
-
-export async function createUser(pool: sql.ConnectionPool, username: string, email: string, password_hash: string, role = 'User') {
+import { getDbPool } from '../utils/db';
+export interface UserCreate {
+  username: string;
+  email: string;
+  password_hash: string;
+}
+export async function createUser(newUser: UserCreate) {
+  const pool = await getDbPool();
   const result = await pool.request()
-    .input('username', sql.VarChar(100), username)
-    .input('email', sql.VarChar(255), email)
-    .input('password_hash', sql.VarChar(255), password_hash)
-    .input('role', sql.VarChar(20), role)
+    .input('username', newUser.username) 
+    .input('email', newUser.email)
+    .input('password_hash', newUser.password_hash)
     .query(`
-      INSERT INTO Users (username, email, password_hash, role)
-      VALUES (@username, @email, @password_hash, @role);
-      SELECT SCOPE_IDENTITY() AS id, username, email, role;
+      INSERT INTO Users (username, email, password_hash)
+      VALUES (@username, @email, @password_hash);
     `);
-  return result.recordset[0];
+  return { message: 'User created successfully' }
 }
 
-export async function getUserByEmail(pool: sql.ConnectionPool, email: string) {
+export async function getUserByEmail( email: string) {
+  const pool = await getDbPool();
   const result = await pool.request()
     .input('email', sql.VarChar(255), email)
     .query('SELECT id, username, email, password_hash, role FROM Users WHERE email = @email');
