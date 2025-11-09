@@ -1,0 +1,20 @@
+# Text files
+*.ts text
+*.js text
+*.json text
+*.css text
+*.html text
+*.sql text
+
+# Force LF for everything inside repo for consistency
+* text=auto
+
+# Binary files (don’t change line endings)
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.eot binary

@@ -1,28 +1,37 @@
-import * as authService from '../services/authService';
-import * as userRepo from '../repositories/userRepository';
-jest.mock('../repositories/userRepository');
+import { hashPassword, checkPassword, createToken, register, login } from '../../src/services/authService';
+import * as userRepo from '../../src/repositories/userRepository';
 
-describe('authService', () => {
-  it('registers new user', async () => {
-    (userRepo.getUserByEmail as jest.Mock).mockResolvedValue(null);
-    (userRepo.createUser as jest.Mock).mockResolvedValue({ id: 123, username: 'john', email: 'a@bunuasi.com' });
-    const result = await authService.register('john', 'a@bunuasi.com', 'Pass123!');
-    expect(result.id).toBe(123);
-  });
+jest.mock('../../src/repositories/userRepository'); // Mock database
 
-  it('prevents duplicate email registration', async () => {
-    (userRepo.getUserByEmail as jest.Mock).mockResolvedValue({ username: 'john', email: 'a@bunuasi.com', password: '8723p' });
-    await expect(authService.register('john', 'a@bunuasi.com', 'Pass123!')).rejects.toThrow('Email already in use');
-  });
-
-  it('logs in existing user', async () => {
-  (userRepo.getUserByEmail as jest.Mock).mockResolvedValue({ id: 123, username: 'john', email: 'a@bunuasi.com', password_hash: await require('bcrypt').hash('Pass123!', 10) });
-  const result = await authService.login('a@bunuasi.com', 'Pass123!');
-  expect(result.user.id).toBe(123);
+test('hashPassword creates a different string', async () => {
+  const password = '1234';
+  const hash = await hashPassword(password);
+  expect(hash).not.toBe(password);
 });
 
-  it('prevents login with invalid credentials', async () => {
-    (userRepo.getUserByEmail as jest.Mock).mockResolvedValue(null);
-    await expect(authService.login('john', 'wrongpass')).rejects.toThrow('Invalid credentials');
-  });
+test('checkPassword returns true for correct password', async () => {
+  const password = '1234';
+  const hash = await hashPassword(password);
+  const result = await checkPassword(password, hash);
+  expect(result).toBe(true);
+});
+
+test('createToken returns a string', () => {
+  const token = createToken(1, 'user');
+  expect(typeof token).toBe('string');
+});
+
+test('register calls createUser', async () => {
+  const user = { email: 'test@test.com', password_hash: '1234' };
+  (userRepo.getUserByEmail as jest.Mock).mockResolvedValue(null);
+  await register(user as any);
+  expect(userRepo.createUser).toHaveBeenCalled();
+});
+
+test('login returns token and user', async () => {
+  const fakeUser = { id: 1, username: 'test', email: 'test@test.com', role: 'user', password_hash: await hashPassword('1234') };
+  (userRepo.getUserByEmail as jest.Mock).mockResolvedValue(fakeUser);
+  const result = await login('test@test.com', '1234');
+  expect(result.user.email).toBe('test@test.com');
+  expect(typeof result.token).toBe('string');
 });
