@@ -26,7 +26,10 @@ export async function getUserByEmail( email: string) {
   return result.recordset[0];
 }
 
-export async function getUserById(pool: sql.ConnectionPool, id: number) {
+export async function getUserById(id: number) {
+  
+  const pool = await getDbPool();
+
   const result = await pool.request()
     .input('id', sql.Int, id)
     .query('SELECT id, username, email, role FROM Users WHERE id = @id');
